@@ -79,6 +79,14 @@ To get a local copy up and running follow these simple steps.
    ```sh
    nim c -o:./bin/program -d:release -r src/benchmark.nim && rm -R ./bin
    ```
+3. Run the tests
+   ```sh
+   testament all
+   ```
+4. Compile to a shared library for use in backends
+    ```sh
+    nim c -d:release --noMain --header --app:lib -o:lib/rivus.so ./src/files.nim
+    ```
 
 ## Development Dependencies
 

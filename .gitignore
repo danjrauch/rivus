@@ -1,2 +1,12 @@
-.vscode
+.vscode/
 .DS_Store
+lib/
+datasets/
+nimcache/
+bin/
+/outputExpected.txt
+/outputGotten.txt
+testresults/
+megatest
+megatest.nim
+testresults.html

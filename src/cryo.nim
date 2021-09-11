@@ -1,6 +1,5 @@
 import system, streams
-
-type number = int | int8 | int16 | int32 | int64 | float | float32 | float64
+import types
 
 proc freeze[T: number](stream: Stream, x: T) =
     var x = x # redeclare so we don't use the parameter address
@@ -8,10 +7,11 @@ proc freeze[T: number](stream: Stream, x: T) =
 
 proc freeze[T: string](stream: Stream, x: T) =
     stream.write(x.len.int64)
-    var buffer: array[100, char]
+    const bufferSize = 1000
+    var buffer: array[bufferSize, char]
     var left = x.len
     while left > 0:
-        let amount = (if left < 100: left else: 100)
+        let amount = (if left < bufferSize: left else: bufferSize)
         for i in 0..<amount:
             buffer[i] = x[i]
         stream.writeData(buffer.addr, amount)
@@ -21,17 +21,22 @@ proc freeze*[T: tuple | object](stream: Stream, x: T) =
     for value in x.fields:
         stream.freeze(value)
 
+proc freeze*[T: tuple | object](stream: Stream, objects: seq[T]) =
+    for obj in objects:
+        stream.freeze(obj)
+
 proc thaw(stream: Stream, x: var number) =
     discard stream.readData(x.addr, sizeof(x))
 
 proc thaw(stream: Stream, x: var string) =
-    let len = stream.readInt64().int
-    var buffer: array[100, char]
+    let len = stream.readInt64()
+    const bufferSize = 1000
+    var buffer: array[bufferSize, char]
     x = newStringOfCap(len)
     var left = len
     while left > 0:
-        let amount = (if left < 100: left else: 100)
-        discard stream.readData(buffer.addr, amount)
+        let amount = (if left < bufferSize: left else: bufferSize)
+        discard stream.readData(buffer.addr, amount.int)
         for i in 0..<amount:
             x.add(buffer[i])
         left = left - amount
