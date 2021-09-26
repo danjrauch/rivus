@@ -77,13 +77,17 @@ To get a local copy up and running follow these simple steps.
    ```
 2. Run the benchmarks
    ```sh
-   nim c -o:./bin/program -d:release -r src/benchmark.nim && rm -R ./bin
+   nimble benchmark
    ```
 3. Run the tests
    ```sh
-   testament all
+   nimble test
    ```
-4. Compile to a shared library for use in backends
+4. Run the project as a binary
+   ```sh
+   nimble run && rm -R ./rivus
+   ```
+5. Compile to a shared library for use in backends
     ```sh
     nim c -d:release --noMain --header --app:lib -o:lib/rivus.so ./src/files.nim
     ```

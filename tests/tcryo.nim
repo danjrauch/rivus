@@ -1,6 +1,7 @@
 import system, streams, os, sequtils
-import ../../src/traceFiles
-import ../../src/cryo
+import rivuspkg/types
+import rivuspkg/traceFiles
+import rivuspkg/cryo
 
 let traces = readTraceFile("datasets/GWA-T-13_Materna-Workload-Traces/Materna-Trace-1/01.csv")
 let streamToFreeze = newFileStream("stress.bin", fmWrite)

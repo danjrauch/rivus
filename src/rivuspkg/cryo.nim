@@ -1,6 +1,16 @@
 import system, streams
 import types
 
+proc binarySize(x: number): int = 
+    return sizeof(x)
+
+proc binarySize(x: string): int =
+    return x.len * sizeof(char)
+
+proc binarySize*[T: tuple | object](x: T): int =
+    for value in x.fields:
+        result += binarySize(value)
+
 proc freeze[T: number](stream: Stream, x: T) =
     var x = x # redeclare so we don't use the parameter address
     stream.writeData(x.addr, sizeof(x))

@@ -14,7 +14,10 @@ template benchmark(benchmarkName: string, code: untyped) =
 echo cpu_count().int32, " CPUs"
 echo &"{(virtual_memory().total / 1e9.int):0.2f}", " GB RAM"
 
-typeDef("Datum", @["a", "b", "c"], @["float64", "int32", "string"])
+type Datum = object
+    a: float64
+    b: int32
+    c: string
 
 # Cycle some random objects from stream
 let size = 1000000

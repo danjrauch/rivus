@@ -1,22 +1,6 @@
 import system, streams, strutils, times
 import types
 
-type 
-    Trace* = object
-        timestamp: int64
-        cpuCores: int16
-        cpuCapacityProvisioned: int32
-        cpuUsage: int32
-        cpuUsagePercent: float64
-        memCapacityProvisioned: int64
-        memUsage: int64
-        memUsagePercent: float64
-        diskReadThroughput: int32
-        diskWriteThroughput: int32
-        diskSize: int32
-        networkReceivedThroughput: int32
-        networkTransmittedThroughput: int32
-
 proc readTraceFile*(fileName: string): seq[Trace] = 
     let s = newFileStream(fileName, fmRead)
     defer: s.close()
