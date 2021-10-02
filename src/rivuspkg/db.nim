@@ -19,8 +19,8 @@ type
     Rivus*[T] = object
         name*: string
         fileName*: string
+        nWrittenPools*: int
         writeAheadDir: string
-        nWrittenPools: int
         inMemPool: Pool[T]
 
 proc newRivus*[T](name: string, fileName: string): Rivus[T] =
@@ -39,18 +39,19 @@ proc newRivus*[T](name: string, fileName: string): Rivus[T] =
         let dbDeck = stream.thaw(Deck)
         nWrittenPools = dbDeck.numItems
     return Rivus[T](name: name, 
-        fileName: fileName, 
+        fileName: fileName,
         writeAheadDir: fileName.splitFile().dir & DirSep & "writeAhead.bin",
         nWrittenPools: nWrittenPools)
 
-proc addItem*[T](this: var Rivus, v: T): void =
+proc flush*[T](this: var Rivus[T]): void =
+    this.frost(this.inMemPool, this.nWrittenPools)
+    this.nWrittenPools += 1
+
+proc addItem*[T](this: var Rivus[T], v: T): void =
     let vBinSize = binarySize(v)
     let inMemPoolSize = DB_MAX_DECK_SIZE + this.inMemPool.items.len * vBinSize
     if inMemPoolSize + vBinSize > DB_POOL_SIZE:
-        let stream = newFileStream(this.fileName, fmReadWriteExisting)
-        defer: stream.close()
-        this.frost(this.inMemPool, this.nWrittenPools)
-        this.nWrittenPools += 1
+        this.flush()
         let header = Deck(numItems: 0)
         this.inMemPool = Pool[T](header: header, items: newSeq[T]())
     this.inMemPool.items.add(v)

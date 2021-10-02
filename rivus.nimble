@@ -12,8 +12,8 @@ bin           = @["rivus"]
 
 # Dependencies
 
-requires "nim >= 1.5.1"
-#requires "compiler >= 1.5.1"
+requires "nim >= 1.4.8"
+requires "psutil"
 
 
 # Tasks
