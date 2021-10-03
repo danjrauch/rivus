@@ -1,10 +1,10 @@
 import system, os, streams
 import cryo
 
-const DB_NUM_POOLS = 100
-const DB_POOL_SIZE = 8192
-const DB_MAX_DECK_SIZE = 100
-const DB_MAX_SIZE = DB_POOL_SIZE + DB_NUM_POOLS * DB_POOL_SIZE
+const DB_NUM_POOLS* = 500
+const DB_POOL_SIZE* = 8192
+const DB_MAX_DECK_SIZE* = 100
+const DB_MAX_SIZE* = DB_MAX_DECK_SIZE + DB_NUM_POOLS * DB_POOL_SIZE
 
 type # needs to be less than MAX_DECK_SIZE when written to binary
     Deck* = object
@@ -19,33 +19,31 @@ type
     Rivus*[T] = object
         name*: string
         fileName*: string
-        nWrittenPools*: int
+        deck*: Deck
         writeAheadDir: string
         inMemPool: Pool[T]
 
 proc newRivus*[T](name: string, fileName: string): Rivus[T] =
-    var nWrittenPools = 0
     if not os.fileExists(fileName):
         let stream = newFileStream(fileName, fmWrite)
         defer: stream.close()
         let dbDeck = Deck(numItems: 0)
         stream.freeze(dbDeck)
-        for i in 0..<DB_NUM_POOLS * DB_POOL_SIZE:
+        for i in 0..<DB_MAX_SIZE - binarySize(dbDeck):
             stream.write(0'u8)
-        nWrittenPools = dbDeck.numItems
-    else:
-        let stream = newFileStream(fileName, fmRead)
-        defer: stream.close()
-        let dbDeck = stream.thaw(Deck)
-        nWrittenPools = dbDeck.numItems
+    let stream = newFileStream(fileName, fmRead)
+    defer: stream.close()
+    let dbDeck = stream.thaw(Deck)
     return Rivus[T](name: name, 
         fileName: fileName,
         writeAheadDir: fileName.splitFile().dir & DirSep & "writeAhead.bin",
-        nWrittenPools: nWrittenPools)
+        deck: dbDeck)
+
+proc deleteRivus*(fileName: string): void =
+    removeFile(fileName)
 
 proc flush*[T](this: var Rivus[T]): void =
-    this.frost(this.inMemPool, this.nWrittenPools)
-    this.nWrittenPools += 1
+    this.frost(this.inMemPool, this.deck.numItems)
 
 proc addItem*[T](this: var Rivus[T], v: T): void =
     let vBinSize = binarySize(v)
@@ -70,12 +68,18 @@ proc frostPool(stream: Stream, pool: Pool, writeAheadDir: string) =
     stream.freeze(pool.header)
     stream.freeze(pool.items)
 
-proc frost*(db: Rivus, pool: Pool, poolNum: int) = 
+proc frost*(db: var Rivus, pool: Pool, poolNum: int) = 
     assert poolNum < DB_NUM_POOLS
     let file = open(db.fileName, fmReadWriteExisting)
-    assert file.getFileSize() >= DB_MAX_DECK_SIZE + (poolNum + 1) * DB_POOL_SIZE
+    assert file.getFileSize() == DB_MAX_SIZE
+    assert file.getFileSize() >= DB_MAX_DECK_SIZE + (poolNum + 1) * DB_POOL_SIZE, 
+        "The rivus has run out of space."
     let stream = newFileStream(file)
     defer: stream.close()
+    if poolNum + 1 > db.deck.numItems:
+        db.deck.numItems += 1
+        assert binarySize(db.deck) <= DB_MAX_DECK_SIZE
+        stream.freeze(db.deck)
     stream.setPosition(DB_MAX_DECK_SIZE + poolNum * DB_POOL_SIZE)
     stream.frostPool(pool, db.writeAheadDir)
 
@@ -89,7 +93,9 @@ proc meltPool(stream: Stream, t: typedesc[tuple | object]): Pool[t] =
 
 proc melt*(db: Rivus, poolNum: int, t: typedesc[tuple | object]): Pool[t] =
     let file = open(db.fileName, fmRead)
-    assert file.getFileSize() >= DB_MAX_DECK_SIZE + (poolNum + 1) * DB_POOL_SIZE
+    assert file.getFileSize() == DB_MAX_SIZE
+    assert file.getFileSize() >= DB_MAX_DECK_SIZE + (poolNum + 1) * DB_POOL_SIZE, 
+        "The rivus has run out of space."
     let stream = newFileStream(file)
     defer: stream.close()
     stream.setPosition(DB_MAX_DECK_SIZE + poolNum * DB_POOL_SIZE)

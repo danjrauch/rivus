@@ -1,7 +1,9 @@
-import system, streams, strutils, times
+import system, os, streams, strutils, times
+import db
 import types
 
 proc readTraceFile*(fileName: string): seq[Trace] = 
+    assert fileExists(fileName), "The trace file doesn't exist."
     let s = newFileStream(fileName, fmRead)
     defer: s.close()
     discard s.readLine()
@@ -36,3 +38,17 @@ proc readTraceFile*(fileName: string): seq[Trace] =
             diskSize: diskSize, 
             networkReceivedThroughput: networkReceivedThroughput, 
             networkTransmittedThroughput: networkTransmittedThroughput))
+
+proc newTraceRivus*(traces: seq[Trace]): Rivus[Trace] =
+    let dbName = "test"
+    let dbDir = "." & DirSep & "dbs"
+    let dbFileName = dbDir & DirSep & "db.bin"
+    if not dirExists(dbFileName.splitFile().dir):
+        createDir(dbFileName.splitFile().dir)
+
+    result = newRivus[Trace](dbName, dbFileName)
+
+    for trace in traces:
+        result.addItem(trace)
+
+    result.flush()

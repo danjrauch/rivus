@@ -1,10 +1,13 @@
-import system, streams, os, sequtils
+import system, streams, os, sequtils, sugar, std/exitprocs
 import rivuspkg/types
-import rivuspkg/traceFiles
+import rivuspkg/tracedb
 import rivuspkg/cryo
 
 let traces = readTraceFile("datasets/GWA-T-13_Materna-Workload-Traces/Materna-Trace-1/01.csv")
 let streamToFreeze = newFileStream("stress.bin", fmWrite)
+
+exitprocs.addExitProc(() => removeFile("stress.bin"))
+
 streamToFreeze.freeze(traces)
 streamToFreeze.close()
 
@@ -17,5 +20,3 @@ streamToThaw.close()
 for (t, tt) in zip(traces, thawedTraces):
     for v1, v2 in fields(t, tt):
         assert(v1 == v2, "Field on thawed object doesn't match original")
-
-removeFile("stress.bin")
